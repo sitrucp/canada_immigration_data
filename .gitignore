@@ -1,0 +1,45 @@
+# Exclude specific folders
+notes/
+archive/
+related_info/
+
+# Exclude specific files
+TR_IMP_TFWP.pbix
+
+# Project-specific: exclude all Sankey-related files
+sankey_*
+
+# Common files to ignore
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
