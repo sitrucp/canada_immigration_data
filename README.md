@@ -24,7 +24,7 @@ All data is sourced from the Government of Canada's open data portal:
 - **Source**: [Canada - Work permit holders for Humanitarian & Compassionate purposes by country of citizenship and year in which permit(s) became effective](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/7257ea58-a5f0-4e58-901a-9a8785878710)
 - **File**: `EN_ODP-TR-Work-HC_citizenship_sign.xlsx`
 
-## Data Notes
+## Source Data Notes
 
 - Values between 0 and 5 are shown as "--" to prevent individual identification in the data we are replacing the "--" with a value 2.
 - All other values are rounded to the closest multiple of 5 for privacy protection
@@ -34,11 +34,10 @@ All data is sourced from the Government of Canada's open data portal:
 
 ## File Structure
 
-### Data Files
+### Source Data Files
 - `EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx` - TFWP data by province/territory
 - `EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx` - IMP data by province/territory  
 - `EN_ODP-TR-Work-HC_citizenship_sign.xlsx` - H&C data by country of citizenship
-- `TR_IMP_TFWP.pbix` - Power BI dashboard file
 
 ### Processed Data
 - `extracted_hc.csv` - Processed H&C data
@@ -84,18 +83,17 @@ The extraction scripts normalize the Excel sources into clean, analysis-ready lo
 
 ### IMP/TFW outputs: `extracted_imp.csv` and `extracted_tfw.csv`
 
-Depending on the source sheet’s structure, there can be 1 to 4 hierarchy columns before the year columns. The output schema is consistent:
+The output schema is consistent:
 
 - Columns:
   - `province_territory` (always present)
-  - Optional: `category_1`, `category_2`, `category_3` (present when the source has multiple hierarchy levels)
+  - `categories` => IMP source data has 3 hierarcy columns: `category_1`, `category_2`, `category_3`. TFW has only 2 hierarcy columns: `category_1`, `category_2`. 
   - `total_flag`: boolean; TRUE for structural subtotal rows, FALSE for detail/leaf rows
   - `year`: integer year (e.g., 2018)
   - `value`: integer count; "--" from source becomes 2; blanks become 0
 
-- Example rows:
-  - Two-level example: `province_territory="Ontario"`, `category_1="Program A"`, `total_flag=False`, `year=2019`, `value=15340`
-  - Three-level example: `province_territory="Quebec"`, `category_1="Program B"`, `category_2="Subcategory X"`, `total_flag=False`, `year=2020`, `value=8420`
+- Example row:
+  - `province_territory="Quebec"`, `category_1="Canadian Interests"`, `category_2="Reciprocal Employment"`, `category_3="Exchange Professors, Visiting Lecturers"`, `total_flag=False`, `year=2023`, `value=10`
 
 ### About `total_flag`
 
@@ -107,7 +105,7 @@ Depending on the source sheet’s structure, there can be 1 to 4 hierarchy colum
 
 ## Usage
 
-### Running Data Extraction Scripts
+### Running Source Data Extraction Scripts
 
 ```bash
 # HC with explicit input/output (default sheet)
@@ -129,9 +127,7 @@ python extract_imp_tfw.py "EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx" "
 ## Dependencies
 
 - Python 3.x
-- pandas
-- openpyxl (for Excel file processing)
- 
+- pandas 
 
 ## Data Privacy
 
