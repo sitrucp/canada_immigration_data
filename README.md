@@ -1,32 +1,38 @@
 # Canada Immigration Data Analysis
 
-This repository contains data extraction scripts for Canadian temporary foreign worker programs, focusing on Temporary Foreign Worker Program (TFWP), International Mobility Program (IMP), and Humanitarian & Compassionate (H&C) work permit data.
+This repository contains python code to extract analysis ready data from Excel data files provided by the Canadian Immigration, Refugees and Citizenship Canada (IRCC) agency's Canadian temporary foreign worker programs including: 
+
+1) Temporary Foreign Worker Program (TFWP)
+2) International Mobility Program (IMP)
+3) Humanitarian & Compassionate (H&C) work permit data
 
 ## Project Overview
 
-This project extracts and processes Canadian immigration data to create clean outputs for analysis of temporary foreign workers across different programs and provinces. The scope here focuses on extraction and processing only.
+This project extracts and processes IRCC Canadian immigration data to create clean outputs for analysis of temporary foreign workers. 
+
+The current scope here focuses on extraction and processing only. Analysis and visualization is the next step.
 
 ## Data Sources
 
-All data is sourced from the Government of Canada's open data portal:
+All data is sourced from IRCC via the Government of Canada's open data portal. The datasets used are listed below:
 
-**Main Dataset**: [Temporary Residents: Temporary Foreign Worker Program (TFWP) and International Mobility Program (IMP) Work Permit Holders – Monthly IRCC Updates](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9)
+**Main List of Available Dataset**: [Temporary Residents: Temporary Foreign Worker Program (TFWP) and International Mobility Program (IMP) Work Permit Holders – Monthly IRCC Updates](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9)
 
 ### 1. TFWP Data
-- **Source**: [Canada - Temporary Foreign Worker Program work permit holders on December 31st by province/territory of intended destination and program](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/3acc1b2c-8da0-405e-b54d-a1c4bcc2bd5f)
 - **File**: `EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx`
+- **Source**: [Canada - Temporary Foreign Worker Program work permit holders on December 31st by province/territory of intended destination and program](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/3acc1b2c-8da0-405e-b54d-a1c4bcc2bd5f)
 
 ### 2. IMP Data
-- **Source**: [Canada - International Mobility Program work permit holders on December 31st by province/territory and program](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/8d4c4240-88ea-421d-b80d-6cc6a3d28044)
 - **File**: `EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx`
+- **Source**: [Canada - International Mobility Program work permit holders on December 31st by province/territory and program](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/8d4c4240-88ea-421d-b80d-6cc6a3d28044)
 
 ### 3. H&C Data
-- **Source**: [Canada - Work permit holders for Humanitarian & Compassionate purposes by country of citizenship and year in which permit(s) became effective](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/7257ea58-a5f0-4e58-901a-9a8785878710)
 - **File**: `EN_ODP-TR-Work-HC_citizenship_sign.xlsx`
+- **Source**: [Canada - Work permit holders for Humanitarian & Compassionate purposes by country of citizenship and year in which permit(s) became effective](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/7257ea58-a5f0-4e58-901a-9a8785878710)
 
 ## Source Data Notes
 
-- Values between 0 and 5 are shown as "--" to prevent individual identification in the data we are replacing the "--" with a value 2.
+- Values between 0 and 5 are shown as "--" to prevent individual identification. Note: As part of the processing these "--" are replaced with a value 2 (just to provide an actual value eg between 0 and 5).
 - All other values are rounded to the closest multiple of 5 for privacy protection
 - Data are preliminary estimates and subject to change
 - Total unique counts may not equal the sum of permit holders as individuals may hold multiple permit types
@@ -34,7 +40,7 @@ All data is sourced from the Government of Canada's open data portal:
 
 ## File Structure
 
-### Source Data Files
+### Source Data Files (provided in the repo but you should get latest files from the source links above)
 - `EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx` - TFWP data by province/territory
 - `EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx` - IMP data by province/territory  
 - `EN_ODP-TR-Work-HC_citizenship_sign.xlsx` - H&C data by country of citizenship
@@ -44,7 +50,7 @@ All data is sourced from the Government of Canada's open data portal:
 - `extracted_imp.csv` - Processed IMP data
 - `extracted_tfw.csv` - Processed TFWP data
 
-### Processing Scripts
+### Python Processing Scripts
 - `extract_hc.py` - Script to extract and process H&C data
 - `extract_imp_tfw.py` - Script to extract and process IMP and TFWP data
 
@@ -55,15 +61,15 @@ All data is sourced from the Government of Canada's open data portal:
 3. **Data Aggregation**: Combine data across programs and time periods
 4. **Export**: Write processed datasets to CSV files for downstream analysis
 
-## Data Transformations and Edge Cases
+## Data Processing Notes
 
-The extraction scripts normalize the Excel sources into clean, analysis-ready long-format CSVs. Key steps and edge cases:
+The extraction scripts normalize the Excel data sources into clean, analysis-ready long-format CSV format data. Key data processing steps and edge cases include:
 
 - Header normalization (HC): forward-fill years across merged cells; select monthly columns only; drop quarterly/yearly subtotals and the final Total row.
 - Header detection (IMP/TFW): auto-detect the header row and the first year column; support variable hierarchy depth before the year columns.
 - Filling hierarchical labels (IMP/TFW): backfill parent labels downwards for `province_territory` and intermediate `category_*` columns so every row has full context.
 - Placeholder handling: values of "--" are replaced with 2; blanks and non-numeric are coerced to 0; thousands separators and non-breaking spaces are removed.
-- Unpivot: convert wide year (or year-month) columns into long format with one observation per row.
+- Unpivot month/year columns: convert wide year (or year-month) columns into long format with one observation per row.
 - Province "Not stated" alignment (IMP/TFW): when `province_territory` contains "Not stated", the primary category is normalized to `Not stated` for consistent grouping.
 - Trimming footers (IMP/TFW): by default, rows below the final exact `Total` row are removed to drop footnotes and notes. You can disable this with the `no-trim` flag.
 
@@ -97,13 +103,13 @@ The output schema is consistent:
 
 ### About `total_flag`
 
-- `total_flag=True` marks structural subtotal rows created by the source hierarchy (e.g., province × program totals). These rows aggregate the detail rows beneath them in the hierarchy.
+- `total_flag=True` marks source data subtotal rows in the original source data (e.g., province totals, program totals, etc). These rows aggregate their related hierarchical detail rows.
 - The very last `Total` row (across all provinces) is also flagged TRUE when present.
-- Use cases:
+- The `total_flag` can be used to exclude the total rows:
   - To avoid double counting, filter `total_flag=False` when summing detail values.
   - To analyze rollups, filter `total_flag=True` and group by the hierarchy columns.
 
-## Usage
+## Python Code Usage
 
 ### Running Source Data Extraction Scripts
 
