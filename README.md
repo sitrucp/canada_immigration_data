@@ -45,7 +45,7 @@ All data is sourced from IRCC via the Government of Canada's open data portal. T
 - `EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx` - IMP data by province/territory  
 - `EN_ODP-TR-Work-HC_citizenship_sign.xlsx` - H&C data by country of citizenship
 
-### Processed Data
+### Processed Data - Use for Analytical Purposes
 - `extracted_hc.csv` - Processed H&C data
 - `extracted_imp.csv` - Processed IMP data
 - `extracted_tfw.csv` - Processed TFWP data
@@ -129,6 +129,18 @@ python extract_imp_tfw.py "EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx" "
 # IMP/TFW: process a specific file and keep rows below the final Total row
 python extract_imp_tfw.py "EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx" "extracted_tfw.csv" no-trim
 ```
+
+## Analytical Usage
+
+Use the csv files for analytical purposes. 
+
+- `extracted_hc.csv` - Processed H&C data
+- `extracted_imp.csv` - Processed IMP data
+- `extracted_tfw.csv` - Processed TFWP data
+
+These have been created specifically to be in a format to be used with common data analysis tools such as Excel Pivot Tables, MS Power BI, Tableau, etc.
+
+Recommend that you set a filter `total_flag`=False to get just detail rows and the analytical tool you use can create the totals by grouping by categories and years etc.
 
 ## Dependencies
 
