@@ -6,7 +6,9 @@ This repository contains python code to extract analysis ready data from the Can
 2) International Mobility Program (IMP)
 3) Humanitarian & Compassionate (H&C) work permit data
 
-The current scope here focuses on extraction and processing only. In the future analysis and visualization tools will be provided.
+The current scope here focuses on extraction and processing only. 
+
+The PDF file `power_bi_report.pdf` contains tables and charts created using this data.
 
 ## Data Sources
 
@@ -149,6 +151,8 @@ Use the csv files for analytical purposes.
 These have been created specifically to be in a format to be used with common data analysis tools such as Excel Pivot Tables, MS Power BI, Tableau, etc.
 
 Recommend that you set a filter `total_flag`=False to get just detail rows and the analytical tool you use can create the totals by grouping by categories and years etc.
+
+The PDF file `power_bi_report.pdf` contains tables and charts created using this data.
 
 ## Dependencies
 
