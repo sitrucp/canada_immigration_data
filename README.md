@@ -1,20 +1,16 @@
-# Canada Immigration Data Analysis
+# Canada Immigration Data Processing Scripts
 
-This repository contains python code to extract analysis ready data from Excel data files provided by the Canadian Immigration, Refugees and Citizenship Canada (IRCC) agency's Canadian temporary foreign worker programs including: 
+This repository contains python code to extract analysis ready data from the Canadian Immigration, Refugees and Citizenship Canada (IRCC) Canada Open Data Excel files for the following programs: 
 
 1) Temporary Foreign Worker Program (TFWP)
 2) International Mobility Program (IMP)
 3) Humanitarian & Compassionate (H&C) work permit data
 
-## Project Overview
-
-This project extracts and processes IRCC Canadian immigration data to create clean outputs for analysis of temporary foreign workers. 
-
-The current scope here focuses on extraction and processing only. Analysis and visualization is the next step.
+The current scope here focuses on extraction and processing only. In the future analysis and visualization tools will be provided.
 
 ## Data Sources
 
-All data is sourced from IRCC via the Government of Canada's open data portal. The datasets used are listed below:
+All data is sourced via the Government of Canada's open data portal. The datasets used are listed below:
 
 **Main List of Available Dataset**: [Temporary Residents: Temporary Foreign Worker Program (TFWP) and International Mobility Program (IMP) Work Permit Holders – Monthly IRCC Updates](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9)
 
@@ -38,14 +34,14 @@ All data is sourced from IRCC via the Government of Canada's open data portal. T
 - Total unique counts may not equal the sum of permit holders as individuals may hold multiple permit types
 - Reporting methodology revised as of June 20, 2014 TFWP overhaul
 
-## File Structure
+## Repo File Structure
 
 ### Source Data Files (provided in the repo but you should get latest files from the source links above)
 - `EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx` - TFWP data by province/territory
 - `EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx` - IMP data by province/territory  
 - `EN_ODP-TR-Work-HC_citizenship_sign.xlsx` - H&C data by country of citizenship
 
-### Processed Data - Use for Analytical Purposes
+### Processed Data - Use for Analytical Purposes (run the python code on latest files to get latest processed data)
 - `extracted_hc.csv` - Processed H&C data
 - `extracted_imp.csv` - Processed IMP data
 - `extracted_tfw.csv` - Processed TFWP data
@@ -59,7 +55,7 @@ All data is sourced from IRCC via the Government of Canada's open data portal. T
 1. **Data Extraction**: Python scripts extract data from Excel files
 2. **Data Cleaning**: Remove privacy-protected values ("--") and handle rounding
 3. **Data Aggregation**: Combine data across programs and time periods
-4. **Export**: Write processed datasets to CSV files for downstream analysis
+4. **Output CSV files**: Write processed datasets to CSV files for downstream analysis
 
 ## Data Processing Notes
 
@@ -85,7 +81,11 @@ The extraction scripts normalize the Excel data sources into clean, analysis-rea
   - `value`: integer count; "--" from source becomes 2; blanks become 0
 
 - Example row:
-  - `country_citizenship="Mexico"`, `year_month="2021-07"`, `year=2021`, `month=7`, `value=125`
+  - `country_citizenship="Mexico"`
+  - `year_month="2021-07"`
+  - `year=2021`
+  - `month=7`
+  - `value=125`
 
 ### IMP/TFW outputs: `extracted_imp.csv` and `extracted_tfw.csv`
 
@@ -99,9 +99,17 @@ The output schema is consistent:
   - `value`: integer count; "--" from source becomes 2; blanks become 0
 
 - Example row:
-  - `province_territory="Quebec"`, `category_1="Canadian Interests"`, `category_2="Reciprocal Employment"`, `category_3="Exchange Professors, Visiting Lecturers"`, `total_flag=False`, `year=2023`, `value=10`
+  - `province_territory="Quebec"`
+  - `category_1="Canadian Interests"`
+  - `category_2="Reciprocal Employment"`
+  - `category_3="Exchange Professors, Visiting Lecturers"` (note: IMP only)
+  - `total_flag=False`
+  - `year=2023`
+  - `value=10`
 
-### About `total_flag`
+### What is the `total_flag`?
+
+The `total_flag=False` should be set to avoid double counting of detail and total data.
 
 - `total_flag=True` marks source data subtotal rows in the original source data (e.g., province totals, program totals, etc). These rows aggregate their related hierarchical detail rows.
 - The very last `Total` row (across all provinces) is also flagged TRUE when present.
@@ -130,7 +138,7 @@ python extract_imp_tfw.py "EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx" "
 python extract_imp_tfw.py "EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx" "extracted_tfw.csv" no-trim
 ```
 
-## Analytical Usage
+## CSV File Data Analytical Usage
 
 Use the csv files for analytical purposes. 
 
