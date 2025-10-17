@@ -2,12 +2,10 @@
 notes/
 archive/
 related_info/
+chat_info/
 
 # Exclude specific files
 TR_IMP_TFWP.pbix
-
-# Project-specific: exclude all Sankey-related files
-sankey_*
 
 # Common files to ignore
 *.log

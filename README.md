@@ -52,12 +52,31 @@ All data is sourced via the Government of Canada's open data portal. The dataset
 - `extract_hc.py` - Script to extract and process H&C data
 - `extract_imp_tfw.py` - Script to extract and process IMP and TFWP data
 
+### Sankey Visualization Files
+- `d3-sankey.js` - D3.js Sankey plugin library (v0.12.3) for rendering flow diagrams
+- `sankey_imp_data.py` - Python script to generate IMP Sankey visualization from CSV data
+- `sankey_imp_template.html` - HTML template for IMP Sankey chart (dynamically populated with data)
+- `sankey_imp.html` - Generated IMP Sankey visualization (interactive D3.js chart)
+- `sankey_tfw_data.py` - Python script to generate TFW Sankey visualization from CSV data
+- `sankey_tfw_template.html` - HTML template for TFW Sankey chart (dynamically populated with data)
+- `sankey_tfw.html` - Generated TFW Sankey visualization (interactive D3.js chart)
+
+**Sankey Chart Features:**
+- Interactive flow diagrams showing hierarchical data relationships
+- Province and year filtering capabilities
+- Color-coded families (all children inherit their Category 1 parent's color)
+- Hierarchical grouping with value-based sorting
+- Dynamic node sizing based on flow values
+- Tooltips showing detailed flow information
+- Legend showing zero-flow nodes for the selected filter
+
 ## Data Processing Workflow
 
 1. **Data Extraction**: Python scripts extract data from Excel files
 2. **Data Cleaning**: Remove privacy-protected values ("--") and handle rounding
 3. **Data Aggregation**: Combine data across programs and time periods
 4. **Output CSV files**: Write processed datasets to CSV files for downstream analysis
+5. **Sankey Chart Generation**: Python scripts read the processed CSV data, build node and link structures, validate data aggregates, and inject the data as JSON into HTML templates to create interactive D3.js Sankey visualizations
 
 ## Data Processing Notes
 
@@ -139,6 +158,32 @@ python extract_imp_tfw.py "EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx" "
 # IMP/TFW: process a specific file and keep rows below the final Total row
 python extract_imp_tfw.py "EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx" "extracted_tfw.csv" no-trim
 ```
+
+### Generating Sankey Visualizations
+
+After extracting data to CSV files, run the Sankey generation scripts to create interactive visualizations:
+
+```bash
+# Generate IMP Sankey chart
+# Reads: extracted_imp.csv and sankey_imp_template.html
+# Writes: sankey_imp.html
+python sankey_imp_data.py
+
+# Generate TFW Sankey chart
+# Reads: extracted_tfw.csv and sankey_tfw_template.html
+# Writes: sankey_tfw.html
+python sankey_tfw_data.py
+```
+
+**How it works:**
+1. The Python script reads the CSV data and builds a hierarchical node/link structure
+2. IMP has 3 category levels (category_1 → category_2 → category_3), TFW has 2 (category_1 → category_2)
+3. The script validates data aggregates to ensure consistency across hierarchy levels
+4. Node and link data is serialized to JSON and injected into the HTML template
+5. The generated HTML file contains the complete interactive D3.js Sankey visualization
+6. Open the generated `.html` file in a web browser to view and interact with the chart
+
+**Note:** The `.html` files are generated artifacts. If you update the CSV data or modify the template, re-run the appropriate Python script to regenerate the visualization.
 
 ## CSV File Data Analytical Usage
 
