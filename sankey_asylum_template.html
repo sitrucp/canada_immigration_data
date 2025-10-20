@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PR Sankey — Province & Year Filters</title>
+  <title>Asylum Sankey — Province & Year Filters</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="d3-sankey.js"></script>
   <style>
@@ -112,11 +112,11 @@
     <a href="index.html">← Home</a>
     <a href="sankey_imp.html">IMP Sankey</a>
     <a href="sankey_tfw.html">TFW Sankey</a>
-    <a href="sankey_pr.html" class="active">PR Sankey</a>
-    <a href="sankey_asylum.html">Asylum Sankey</a>
+    <a href="sankey_pr.html">PR Sankey</a>
+    <a href="sankey_asylum.html" class="active">Asylum Sankey</a>
     <a href="sankey_study.html">Study Sankey</a>
   </div>
-  <h1>PR Sankey — Province & Year Filters</h1>
+  <h1>Asylum Sankey — Province & Year Filters</h1>
   <div class="controls">
     <div>
       <label for="provinceSelect">Province/Territory</label>
@@ -238,7 +238,7 @@
         // Walk up the hierarchy using ALL links (not filtered), to show structural hierarchy
         while (currentId !== undefined && depth < maxDepth) {
           const currentNode = NODES.find(n => n.id === currentId);
-          if (currentNode && currentNode.level !== 0) { // Skip "PR" root
+          if (currentNode && currentNode.level !== 0) { // Skip root
             path.unshift(currentNode.label);
           }
           
@@ -281,12 +281,11 @@
       }
 
       // Prepare D3 Sankey data
-      // Include ALL nodes with flow > 0 (only zero-flow nodes go to legend)
       const nodesWithFlow = new Set(nodeValues.keys());
       
       // D3 Sankey needs nodes as objects with name property and modifies them in place
       const sankeyNodes = NODES
-        .filter(n => nodesWithFlow.has(n.id)) // Only exclude zero-flow nodes
+        .filter(n => nodesWithFlow.has(n.id))
         .map(n => ({
           id: n.id,
           name: n.label,
@@ -299,151 +298,49 @@
         value: l.value
       }));
 
-      // Create parent-child mapping for hierarchical grouping
-      const parentMap = new Map(); // childId -> primaryParentId
-      const childrenMap = new Map(); // parentId -> Set of childIds
-      
-      for (const link of sankeyLinks) {
-        // Track primary parent for each child
-        if (!parentMap.has(link.target)) {
-          parentMap.set(link.target, link.source);
-        }
-        // Track all children for each parent
-        if (!childrenMap.has(link.source)) {
-          childrenMap.set(link.source, new Set());
-        }
-        childrenMap.get(link.source).add(link.target);
-      }
-      
-      // Calculate node order: first by level, then by value within level, then by parent order
+      // Hierarchical sort by level then by value
       const nodeOrder = new Map();
       let orderCounter = 0;
-      
-      // Get nodes by level
       const nodesByLevel = new Map();
       for (const node of sankeyNodes) {
         const level = node.level || 0;
-        if (!nodesByLevel.has(level)) {
-          nodesByLevel.set(level, []);
-        }
+        if (!nodesByLevel.has(level)) nodesByLevel.set(level, []);
         nodesByLevel.get(level).push(node);
       }
-      
-      // Sort each level hierarchically
       const maxLevel = Math.max(...Array.from(nodesByLevel.keys()));
       for (let level = 0; level <= maxLevel; level++) {
         const nodesAtLevel = nodesByLevel.get(level) || [];
-        
-        if (level === 0) {
-          // Level 0: just assign order
-          nodesAtLevel.forEach(node => {
-            nodeOrder.set(node.id, orderCounter++);
-          });
-          } else {
-          // Group by parent, maintaining parent order
-          const grouped = new Map(); // parentId -> children
-          const orphans = []; // nodes without parents
-          
-          for (const node of nodesAtLevel) {
-            const parentId = parentMap.get(node.id);
-            if (parentId === undefined) {
-              orphans.push(node);
-              } else {
-              if (!grouped.has(parentId)) {
-                grouped.set(parentId, []);
-              }
-              grouped.get(parentId).push(node);
-            }
-          }
-          
-          // Sort orphans by value
-          orphans.sort((a, b) => (b.value || 0) - (a.value || 0));
-          orphans.forEach(node => {
-            nodeOrder.set(node.id, orderCounter++);
-          });
-          
-          // Get parents sorted by their order
-          const sortedParents = Array.from(grouped.keys())
-            .sort((a, b) => (nodeOrder.get(a) || 0) - (nodeOrder.get(b) || 0));
-          
-          // Process children in parent order
-          for (const parentId of sortedParents) {
-            const children = grouped.get(parentId);
-            // Sort children within parent by value (descending)
-            children.sort((a, b) => (b.value || 0) - (a.value || 0));
-            children.forEach(node => {
-              nodeOrder.set(node.id, orderCounter++);
-            });
-          }
-        }
+        nodesAtLevel.sort((a, b) => (b.value || 0) - (a.value || 0));
+        nodesAtLevel.forEach(n => nodeOrder.set(n.id, orderCounter++));
       }
-      
-      // Hierarchical sort function using pre-calculated order
       function hierarchicalSort(a, b) {
         const orderA = nodeOrder.get(a.id);
         const orderB = nodeOrder.get(b.id);
         return (orderA || 0) - (orderB || 0);
       }
-      
-      // Create Sankey generator with hierarchical grouping
+
+      // Create Sankey generator
       const sankey = d3.sankey()
         .nodeId(d => d.id)
-        .nodeAlign(d3.sankeyLeft)  // Align nodes by depth/level
+        .nodeAlign(d3.sankeyLeft)
         .nodeWidth(20)
-        .nodePadding(15)  // Vertical spacing between nodes
-        .nodeSort(hierarchicalSort)  // Group children under their parents
+        .nodePadding(15)
+        .nodeSort(hierarchicalSort)
         .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]]);
 
-      // Generate the sankey layout
       const graph = sankey({
         nodes: sankeyNodes,
         links: sankeyLinks
       });
 
-      // Build color mapping: all nodes inherit color from their Category 1 parent
-      const nodeToCategory1 = new Map();
-      
-      // Find Category 1 parents for all nodes
-      function findCategory1Parent(nodeId, visited = new Set()) {
-        if (visited.has(nodeId)) return null; // Prevent infinite loops
-        visited.add(nodeId);
-        
-        const node = graph.nodes.find(n => n.id === nodeId);
-        if (!node) return null;
-        
-        // If this is a Category 1 node (level 1), return it
-        if (node.level === 1) return nodeId;
-        
-        // Find parent through links
-        const parentLink = graph.links.find(l => l.target.id === nodeId);
-        if (parentLink) {
-          return findCategory1Parent(parentLink.source.id, visited);
-        }
-        
-        return null;
-      }
-      
-      // Map all nodes to their Category 1 parent
-      for (const node of graph.nodes) {
-        const cat1Parent = findCategory1Parent(node.id);
-        nodeToCategory1.set(node.id, cat1Parent);
-      }
-      
-      // Create color scale based on Category 1 nodes only - use original NODES array for consistent colors
+      // Color mapping by claim_office_type (level 1) - use original NODES array for consistent colors
       const category1Nodes = NODES.filter(n => n.level === 1);
       const category1Colors = new Map();
       category1Nodes.forEach((node, i) => {
         category1Colors.set(node.id, d3.schemeCategory10[i % 10]);
       });
-      
-      // Function to get color for any node based on its Category 1 parent
       function getNodeColor(nodeId) {
-        const cat1Parent = nodeToCategory1.get(nodeId);
-        if (cat1Parent && category1Colors.has(cat1Parent)) {
-          return category1Colors.get(cat1Parent);
-        }
-        // Default color for nodes without Category 1 parent (like root)
-        return '#999';
+        return category1Colors.get(nodeId) || '#999';
       }
 
       // Clear previous chart
@@ -467,9 +364,7 @@
         .attr('d', d3.sankeyLinkHorizontal())
         .attr('stroke-width', d => Math.max(1, d.width))
         .attr('stroke', d => {
-          // Use the target node's Category 1 color for the link
           const color = getNodeColor(d.target.id);
-          // Add transparency
           const rgb = d3.color(color);
           return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`;
         })
@@ -491,7 +386,8 @@
           tooltip.style('opacity', 0);
         });
 
-      // Add nodes
+      // Add nodes with minimum height for visibility
+      const MIN_NODE_HEIGHT = 3;
       const node = svg.append('g')
         .attr('class', 'nodes')
         .selectAll('g')
@@ -499,9 +395,6 @@
         .join('g')
         .attr('class', 'node');
 
-      // Add node rectangles with minimum height for visibility
-      const MIN_NODE_HEIGHT = 3; // Minimum 3px height even for tiny values
-      
       node.append('rect')
         .attr('x', d => d.x0)
         .attr('y', d => {
@@ -534,12 +427,11 @@
         const val = node.value || 0;
         if (val <= 0) return node.name;
         
-        // Find immediate parent for this node
-        const parentLink = graph.links.find(l => l.target.id === node.id);
-        if (parentLink) {
-          const parentNode = graph.nodes.find(n => n.id === parentLink.source.id);
-          if (parentNode && parentNode.value > 0) {
-            const percentage = ((val / parentNode.value) * 100).toFixed(1);
+        // For Asylum chart: all level 1 nodes have Asylum (level 0) as parent
+        if (node.level === 1) {
+          const asylumNode = graph.nodes.find(n => n.level === 0);
+          if (asylumNode && asylumNode.value > 0) {
+            const percentage = ((val / asylumNode.value) * 100).toFixed(1);
             return `${node.name} (${formatNumber(val)}, ${percentage}%)`;
           }
         }
@@ -548,7 +440,7 @@
         return `${node.name} (${formatNumber(val)})`;
       }
 
-      // Add node labels (single line, no wrapping)
+      // Labels
       node.append('text')
         .attr('x', d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
         .attr('y', d => (d.y1 + d.y0) / 2)

@@ -113,6 +113,8 @@
     <a href="sankey_imp.html" class="active">IMP Sankey</a>
     <a href="sankey_tfw.html">TFW Sankey</a>
     <a href="sankey_pr.html">PR Sankey</a>
+    <a href="sankey_asylum.html">Asylum Sankey</a>
+    <a href="sankey_study.html">Study Sankey</a>
   </div>
   <h1>IMP Sankey — Province & Year Filters</h1>
   <div class="controls">
@@ -427,8 +429,8 @@
         nodeToCategory1.set(node.id, cat1Parent);
       }
       
-      // Create color scale based on Category 1 nodes only
-      const category1Nodes = graph.nodes.filter(n => n.level === 1);
+      // Create color scale based on Category 1 nodes only - use original NODES array for consistent colors
+      const category1Nodes = NODES.filter(n => n.level === 1);
       const category1Colors = new Map();
       category1Nodes.forEach((node, i) => {
         category1Colors.set(node.id, d3.schemeCategory10[i % 10]);
@@ -527,16 +529,32 @@
           tooltip.style('opacity', 0);
         });
 
+      // Calculate parent percentages for node labels
+      function getNodeLabel(node) {
+        const val = node.value || 0;
+        if (val <= 0) return node.name;
+        
+        // Find immediate parent for this node
+        const parentLink = graph.links.find(l => l.target.id === node.id);
+        if (parentLink) {
+          const parentNode = graph.nodes.find(n => n.id === parentLink.source.id);
+          if (parentNode && parentNode.value > 0) {
+            const percentage = ((val / parentNode.value) * 100).toFixed(1);
+            return `${node.name} (${formatNumber(val)}, ${percentage}%)`;
+          }
+        }
+        
+        // For root node or if no parent found, just show value
+        return `${node.name} (${formatNumber(val)})`;
+      }
+
       // Add node labels (single line, no wrapping)
       node.append('text')
         .attr('x', d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
         .attr('y', d => (d.y1 + d.y0) / 2)
         .attr('dy', '0.35em')
         .attr('text-anchor', d => d.x0 < width / 2 ? 'start' : 'end')
-        .text(d => {
-          const val = d.value || 0;
-          return val > 0 ? `${d.name} (${formatNumber(val)})` : d.name;
-        });
+        .text(d => getNodeLabel(d));
     }
 
     init();

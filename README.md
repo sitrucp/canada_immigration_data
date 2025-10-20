@@ -28,6 +28,21 @@ All data is sourced via the Government of Canada's open data portal. The dataset
 - **File**: `EN_ODP-TR-Work-HC_citizenship_sign.xlsx`
 - **Source**: [Canada - Work permit holders for Humanitarian & Compassionate purposes by country of citizenship and year in which permit(s) became effective](https://open.canada.ca/data/en/dataset/360024f2-17e9-4558-bfc1-3616485d65b9/resource/7257ea58-a5f0-4e58-901a-9a8785878710)
 
+### 4. Permanent Residents (PR) Data
+- **File**: `EN_ODP-PR-ProvImmCat.xlsx`
+- **Source**: Canada - Permanent Residents by Province/Territory and Immigration Category
+- **Link**: https://open.canada.ca/data/en/dataset/f7e5498e-0ad8-4417-85c9-9b8aff9b9eda
+
+### 5. Asylum Claimants Data
+- **File**: `EN_ODP-Asylum-OfficeType_Prov.xlsx`
+- **Source**: Canada - Asylum Claimants by Claim Office Type, Province / Territory of Claim and Claim Month
+- **Link**: https://open.canada.ca/data/en/dataset/b6cbcf4d-f763-4924-a2fb-8cc4a06e3de4
+
+### 6. Study Permit Holders Data
+- **File**: `EN_ODP-TR-Study-IS_PT_study_level_sign.xlsx`
+- **Source**: Canada – Study permit holders by study level, province/territory and year in which permit(s) became effective
+- **Link**: https://open.canada.ca/data/en/dataset/90115b00-f9b8-49e8-afa3-b4cff8facaee
+
 ## Source Data Notes
 
 - Values between 0 and 5 are shown as "--" to prevent individual identification. Note: As part of the processing these "--" are replaced with a value 2 (just to provide an actual value eg between 0 and 5).
@@ -42,15 +57,24 @@ All data is sourced via the Government of Canada's open data portal. The dataset
 - `EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx` - TFWP data by province/territory
 - `EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx` - IMP data by province/territory  
 - `EN_ODP-TR-Work-HC_citizenship_sign.xlsx` - H&C data by country of citizenship
+ - `EN_ODP-PR-ProvImmCat.xlsx` - PR data by province/territory and immigration category
+ - `EN_ODP-Asylum-OfficeType_Prov.xlsx` - Asylum claims by office type and province/territory
+ - `EN_ODP-TR-Study-IS_PT_study_level_sign.xlsx` - Study permit holders by study level and province/territory
 
 ### Processed Data - Use for Analytical Purposes (run the python code on latest files to get latest processed data)
 - `extracted_hc.csv` - Processed H&C data
 - `extracted_imp.csv` - Processed IMP data
 - `extracted_tfw.csv` - Processed TFWP data
+ - `extracted_pr.csv` - Processed PR data
+ - `extracted_asylum.csv` - Processed Asylum data
+ - `extracted_study.csv` - Processed Study data
 
 ### Python Processing Scripts
 - `extract_hc.py` - Script to extract and process H&C data
 - `extract_imp_tfw.py` - Script to extract and process IMP and TFWP data
+ - `extract_pr.py` - Script to extract and process PR data
+ - `extract_asylum.py` - Script to extract and process Asylum data
+ - `extract_study.py` - Script to extract and process Study data
 
 ### Sankey Visualization Files
 - `d3-sankey.js` - D3.js Sankey plugin library (v0.12.3) for rendering flow diagrams
@@ -60,6 +84,15 @@ All data is sourced via the Government of Canada's open data portal. The dataset
 - `sankey_tfw_data.py` - Python script to generate TFW Sankey visualization from CSV data
 - `sankey_tfw_template.html` - HTML template for TFW Sankey chart (dynamically populated with data)
 - `sankey_tfw.html` - Generated TFW Sankey visualization (interactive D3.js chart)
+ - `sankey_pr_data.py` - Python script to generate PR Sankey visualization from CSV data
+ - `sankey_pr_template.html` - HTML template for PR Sankey chart (dynamically populated with data)
+ - `sankey_pr.html` - Generated PR Sankey visualization (interactive D3.js chart)
+ - `sankey_asylum_data.py` - Python script to generate Asylum Sankey visualization from CSV data
+ - `sankey_asylum_template.html` - HTML template for Asylum Sankey chart (dynamically populated with data)
+ - `sankey_asylum.html` - Generated Asylum Sankey visualization (interactive D3.js chart)
+ - `sankey_study_data.py` - Python script to generate Study Sankey visualization from CSV data
+ - `sankey_study_template.html` - HTML template for Study Sankey chart (dynamically populated with data)
+ - `sankey_study.html` - Generated Study Sankey visualization (interactive D3.js chart)
 
 **Sankey Chart Features:**
 - Interactive flow diagrams showing hierarchical data relationships
@@ -128,6 +161,44 @@ The output schema is consistent:
   - `year=2023`
   - `value=10`
 
+
+### PR output: `extracted_pr.csv`
+
+- Columns:
+  - `province_territory`
+  - `category_1`, `category_2`, `category_3` (hierarchy depth may vary by year/category)
+  - `total_flag`: boolean; TRUE for structural subtotal rows, FALSE for detail rows
+  - `year_month`: string in YYYY-MM
+  - `year`: integer year
+  - `month`: integer month (1-12)
+  - `value`: integer; "--" becomes 2; blanks become 0
+
+- Notes:
+  - Province "Not stated" rows normalize `category_1` to `Not stated` for consistency in rollups.
+
+### Asylum output: `extracted_asylum.csv`
+
+- Columns:
+  - `province_territory`
+  - `claim_office_type`
+  - `total_flag`: boolean; TRUE for structural subtotal rows, FALSE for detail rows
+  - `year_month`: string in YYYY-MM
+  - `year`: integer year
+  - `month`: integer month (1-12)
+  - `value`: integer; "--" becomes 2; blanks become 0
+
+### Study output: `extracted_study.csv`
+
+- Columns:
+  - `province_territory`
+  - `study_level`
+  - `total_flag`: boolean; TRUE for structural subtotal rows, FALSE for detail rows
+  - `year_month`: string in YYYY-MM
+  - `year`: integer year
+  - `month`: integer month (1-12)
+  - `value`: integer; "--" becomes 2; blanks become 0
+
+
 ### What is the `total_flag`?
 
 The `total_flag=False` should be set to avoid double counting of detail and total data.
@@ -157,6 +228,16 @@ python extract_imp_tfw.py "EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx" "
 
 # IMP/TFW: process a specific file and keep rows below the final Total row
 python extract_imp_tfw.py "EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx" "extracted_tfw.csv" no-trim
+
+# PR: process Province/Immigration Category file into unpivoted CSV
+python extract_pr.py "EN_ODP-PR-ProvImmCat.xlsx" "extracted_pr.csv"
+
+# Asylum: process Claim Office Type/Province file into unpivoted CSV
+python extract_asylum.py "EN_ODP-Asylum-OfficeType_Prov.xlsx" "extracted_asylum.csv"
+
+# Study: process Study level by Province/Territory into unpivoted CSV (defaults shown)
+python extract_study.py
+python extract_study.py "EN_ODP-TR-Study-IS_PT_study_level_sign.xlsx" "extracted_study.csv"
 ```
 
 ### Generating Sankey Visualizations
@@ -173,6 +254,21 @@ python sankey_imp_data.py
 # Reads: extracted_tfw.csv and sankey_tfw_template.html
 # Writes: sankey_tfw.html
 python sankey_tfw_data.py
+
+# Generate PR Sankey chart
+# Reads: extracted_pr.csv and sankey_pr_template.html
+# Writes: sankey_pr.html
+python sankey_pr_data.py
+
+# Generate Asylum Sankey chart
+# Reads: extracted_asylum.csv and sankey_asylum_template.html
+# Writes: sankey_asylum.html
+python sankey_asylum_data.py
+
+# Generate Study Sankey chart
+# Reads: extracted_study.csv and sankey_study_template.html
+# Writes: sankey_study.html
+python sankey_study_data.py
 ```
 
 **How it works:**
@@ -192,6 +288,9 @@ Use the csv files for analytical purposes.
 - `extracted_hc.csv` - Processed H&C data
 - `extracted_imp.csv` - Processed IMP data
 - `extracted_tfw.csv` - Processed TFWP data
+ - `extracted_pr.csv` - Processed PR data
+ - `extracted_asylum.csv` - Processed Asylum data
+ - `extracted_study.csv` - Processed Study data
 
 These have been created specifically to be in a format to be used with common data analysis tools such as Excel Pivot Tables, MS Power BI, Tableau, etc.
 
@@ -202,7 +301,8 @@ The PDF file `power_bi_report.pdf` contains tables and charts created using this
 ## Dependencies
 
 - Python 3.x
-- pandas 
+- pandas
+- d3-sankey.js v0.12.3
 
 ## Data Privacy
 
