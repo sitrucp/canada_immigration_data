@@ -158,6 +158,13 @@ def transform_hierarchical(df, hierarchy_cols):
         last_total_idx = total_rows[total_rows].index.max()
         df.loc[last_total_idx, "total_flag"] = True
 
+    # Handle collisions between category_1 and category_2 by adding " (subcategory)" to category_2
+    if "category_1" in df.columns and "category_2" in df.columns:
+        # Find rows where category_1 and category_2 have the same value and total_flag=False
+        collision_mask = (df["category_1"] == df["category_2"]) & df["category_1"].notna() & df["category_2"].notna() & (~df["total_flag"])
+        if collision_mask.any():
+            df.loc[collision_mask, "category_2"] = df.loc[collision_mask, "category_2"] + " (subcategory)"
+
     return df
 
 def unpivot_data(df, hierarchy_cols, years):
@@ -208,6 +215,10 @@ def process_excel(input_path, output_path, trim_bottom=True):
     
     # Generate CSV output path (replace .xlsx with .csv)
     csv_output_path = output_path.replace('.xlsx', '.csv')
+    # Ensure output directory exists
+    import os
+    out_dir = os.path.dirname(csv_output_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
     print("Saving unpivoted CSV output...")
     unpivoted_result.to_csv(csv_output_path, index=False)
     print(f"Saved CSV: {csv_output_path}")
@@ -222,18 +233,18 @@ if __name__ == "__main__":
     # Default processing for both IMP and TFW files
     if len(sys.argv) == 1:
         # Process both IMP and TFW files by default
-        imp_input = "EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx"
-        tfw_input = "EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx"
+        imp_input = "goc_data_source/EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx"
+        tfw_input = "goc_data_source/EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx"
         
         if os.path.exists(imp_input):
             print("Processing IMP data...")
-            process_excel(imp_input, "extracted_imp.csv", trim_bottom=True)
+            process_excel(imp_input, "goc_data_processed/extracted_imp.csv", trim_bottom=True)
         else:
             print(f"Warning: {imp_input} not found")
             
         if os.path.exists(tfw_input):
             print("\nProcessing TFW data...")
-            process_excel(tfw_input, "extracted_tfw.csv", trim_bottom=True)
+            process_excel(tfw_input, "goc_data_processed/extracted_tfw.csv", trim_bottom=True)
         else:
             print(f"Warning: {tfw_input} not found")
             

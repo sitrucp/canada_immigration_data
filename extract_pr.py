@@ -109,6 +109,19 @@ def _clean_province_territory_value(x: str) -> str:
     return s2.strip()
 
 
+def _clean_category_1_value(x: str) -> str:
+    """
+    Trim trailing ' - Total' from category_1 values.
+    This removes the ' - Total' suffix from category names like 'Economic - Total' -> 'Economic'.
+    """
+    if pd.isna(x):
+        return x
+    s = str(x).strip()
+    # Remove trailing ' - Total' (case-insensitive)
+    s2 = re.sub(r"\s*-\s*Total$", "", s, flags=re.IGNORECASE)
+    return s2.strip()
+
+
 def parse_pr_data(input_path: str, sheet_name: Optional[str] = None) -> pd.DataFrame:
     """
     Parse the PR Excel file with both hierarchical categories and year/month columns.
@@ -272,6 +285,25 @@ def transform_hierarchical(df: pd.DataFrame, hierarchy_cols: List[str]) -> pd.Da
         last_total_idx = total_rows[total_rows].index.max()
         df.loc[last_total_idx, "total_flag"] = True
     
+    # Clean category_1 by removing trailing ' - Total' only for rows where total_flag=False
+    if "category_1" in df.columns:
+        mask_non_total = ~df["total_flag"]
+        df.loc[mask_non_total, "category_1"] = df.loc[mask_non_total, "category_1"].map(_clean_category_1_value)
+    
+    # Handle collisions between category_1 and category_2 by adding " (subcategory)" to category_2
+    if "category_1" in df.columns and "category_2" in df.columns:
+        # Find rows where category_1 and category_2 have the same value
+        collision_mask = (df["category_1"] == df["category_2"]) & df["category_1"].notna() & df["category_2"].notna()
+        if collision_mask.any():
+            df.loc[collision_mask, "category_2"] = df.loc[collision_mask, "category_2"] + " (subcategory)"
+    
+    # Handle collisions between category_2 and category_3 by adding " (subcategory)" to category_3
+    if "category_2" in df.columns and "category_3" in df.columns:
+        # Find rows where category_2 and category_3 have the same value
+        collision_mask = (df["category_2"] == df["category_3"]) & df["category_2"].notna() & df["category_3"].notna()
+        if collision_mask.any():
+            df.loc[collision_mask, "category_3"] = df.loc[collision_mask, "category_3"] + " (subcategory)"
+    
     return df
 
 
@@ -346,6 +378,10 @@ def main():
     csv_output_path = args.output_path.replace('.xlsx', '.csv').replace('.xlsm', '.csv')
     if not csv_output_path.endswith('.csv'):
         csv_output_path += '.csv'
+    # Ensure output directory exists
+    import os
+    out_dir = os.path.dirname(csv_output_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
     
     print("Saving unpivoted CSV output...")
     unpivoted_df.to_csv(csv_output_path, index=False)
@@ -358,5 +394,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # Default to new folder layout when not providing explicit args
+    import sys
+    if len(sys.argv) == 1:
+        sys.argv = [sys.argv[0], "goc_data_source/EN_ODP-PR-ProvImmCat.xlsx", "goc_data_processed/extracted_pr.csv"]
     main()
 

@@ -1,11 +1,12 @@
 # Exclude specific folders
 notes/
 archive/
-related_info/
+discord_attachments/
 chat_info/
 
 # Exclude specific files
 TR_IMP_TFWP.pbix
+extracted_viewer.xlsx
 
 # Common files to ignore
 *.log

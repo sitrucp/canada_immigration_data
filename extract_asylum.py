@@ -273,6 +273,10 @@ def main():
     csv_output_path = args.output_path.replace('.xlsx', '.csv').replace('.xlsm', '.csv')
     if not csv_output_path.endswith('.csv'):
         csv_output_path += '.csv'
+    # Ensure output directory exists
+    import os
+    out_dir = os.path.dirname(csv_output_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
 
     print("Saving unpivoted CSV output...")
     unpivoted_df.to_csv(csv_output_path, index=False)
@@ -284,6 +288,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # Default to new folder layout when not providing explicit args
+    import sys
+    if len(sys.argv) == 1:
+        sys.argv = [sys.argv[0], "goc_data_source/EN_ODP-Asylum-OfficeType_Prov.xlsx", "goc_data_processed/extracted_asylum.csv"]
     main()
 
 

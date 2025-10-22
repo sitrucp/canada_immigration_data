@@ -2,7 +2,7 @@
 import pandas as pd
 import numpy as np
 import json
-
+from typing import List
 
 def _validate_aggregates(long_df: pd.DataFrame, l01: pd.DataFrame) -> None:
     """Validate that totals at each node level match CSV aggregates across all provinces and years.
@@ -19,14 +19,14 @@ def _validate_aggregates(long_df: pd.DataFrame, l01: pd.DataFrame) -> None:
     if not l1_mismatch.empty:
         raise AssertionError(f"Level 1 totals mismatch for study_level: {l1_mismatch.to_dict(orient='records')}")
 
-    # Overall total (restrict to rows that form links: have study_level)
-    total_csv = float(long_df.dropna(subset=["study_level"]) ["value"].sum())
+    # Overall total
+    total_csv = float(long_df["value"].sum())
     total_links_l1 = float(l01["value"].sum())
     if not np.isclose(total_csv, total_links_l1):
         raise AssertionError(f"Overall total mismatch: csv={total_csv} vs links_l1_sum={total_links_l1}")
 
 
-def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
+def build_echarts_data(df: pd.DataFrame, drop_totals: bool = True):
     # Normalize text columns
     for c in ["province_territory","study_level"]:
         if c in df.columns:
@@ -37,8 +37,9 @@ def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
     if drop_totals and "total_flag" in df.columns:
         df = df.loc[~df["total_flag"].astype(bool)].copy()
 
-    # Expect long format (has 'year' and 'value' columns) from extracted_study.csv
+    # Check if data is already unpivoted (has 'year' and 'value' columns)
     if "year" in df.columns and "value" in df.columns:
+        # Data is already unpivoted
         long_df = df.copy()
         long_df["year"] = long_df["year"].astype(str)
         long_df["value"] = pd.to_numeric(
@@ -47,9 +48,22 @@ def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
         ).fillna(0)
         long_df = long_df.loc[long_df["value"] != 0].copy()
     else:
-        # Legacy format (not expected here), try month/year columns
-        raise ValueError("Expected unpivoted study CSV with 'year' and 'value' columns.")
+        # Legacy format - detect year columns and unpivot
+        year_cols: List[str] = [c for c in df.columns if c.isdigit() and len(c) == 4]
+        if not year_cols:
+            raise ValueError("No year columns found (expected 'YYYY' headers or 'year' column).")
+        year_cols = sorted(year_cols)
 
+        # Unpivot
+        id_vars = ["province_territory","study_level"]
+        long_df = df.melt(id_vars=id_vars, value_vars=year_cols, var_name="year", value_name="value")
+        long_df["year"] = long_df["year"].astype(str)
+        long_df["value"] = pd.to_numeric(
+            long_df["value"].astype(str).str.replace(",", "", regex=False),
+            errors="coerce"
+        ).fillna(0)
+        long_df = long_df.loc[long_df["value"] != 0].copy()
+    
     # Ensure provinces have explicit label for not stated
     long_df["province_territory"] = (
         long_df["province_territory"].fillna("Province/Territory not stated")
@@ -58,18 +72,19 @@ def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
     # Nodes - Add top-level Study node
     level0 = ["Study"]  # Top-level node
     level1 = sorted(set(long_df["study_level"].dropna().tolist()))
-
+    
     labels = level0 + level1
     levels = ([0]*len(level0)) + ([1]*len(level1))
     node_id_map = {label: idx for idx, label in enumerate(labels)}
 
-    nodes = [{"id": i, "label": lab, "level": lvl} for i, (lab, lvl) in enumerate(zip(labels, levels))]
+    # ECharts nodes format: list of node names
+    nodes = labels
 
     # Links
     # Level 0 to Level 1: Study to all study_level nodes
-    l01 = (long_df.dropna(subset=["study_level"])  
+    l01 = (long_df.dropna(subset=["study_level"])
                  .groupby(["province_territory","year","study_level"], as_index=False)["value"].sum())
-    l01["source"] = l01["study_level"].map(lambda x: node_id_map["Study"])  # All from Study root
+    l01["source"] = l01["study_level"].map(lambda x: node_id_map["Study"])  # All from Study node
     l01["target"] = l01["study_level"].map(node_id_map)
 
     links = l01[["source","target","value","province_territory","year"]].sort_values(["year","province_territory","source","target"]).reset_index(drop=True)
@@ -77,17 +92,64 @@ def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
     # Validate aggregates over all years and provinces for each level
     _validate_aggregates(long_df, l01.assign(study_level=l01["study_level"]))
 
-    return nodes, links.to_dict(orient="records")
+    # ECharts links format: list of {source: node_name, target: node_name, value: number}
+    echarts_links = []
+    for _, row in links.iterrows():
+        echarts_links.append({
+            "source": labels[row["source"]],
+            "target": labels[row["target"]],
+            "value": int(row["value"]),
+            "province_territory": row["province_territory"],
+            "year": row["year"]
+        })
 
+    return nodes, echarts_links
+
+def create_color_schema(df: pd.DataFrame) -> dict:
+    """Create a color schema mapping for top-level nodes (direct children of Study).
+    
+    Colors are assigned based on the total value of each category, ensuring
+    consistent visual hierarchy across different datasets.
+    """
+    # Define the color palette (same as in HTML)
+    color_palette = [
+        '#e74c3c',  # Red
+        '#3498db',  # Blue
+        '#2ecc71',  # Green
+        '#f39c12',  # Orange
+        '#9b59b6',  # Purple
+        '#1abc9c',  # Turquoise
+        '#e67e22',  # Dark Orange
+        '#34495e',  # Dark Blue
+        '#e91e63',  # Pink
+        '#00bcd4'   # Cyan
+    ]
+    
+    # Filter out totals before calculating color schema
+    if 'total_flag' in df.columns:
+        df = df.loc[~df['total_flag'].astype(bool)]
+    
+    # Calculate total values for each top-level category
+    category_values = df.groupby('study_level')['value'].sum().sort_values(ascending=False)
+    
+    # Create color mapping based on value ranking (largest gets first color)
+    color_schema = {}
+    for i, (category, value) in enumerate(category_values.items()):
+        color_schema[category] = color_palette[i % len(color_palette)]
+    
+    return color_schema
 
 def main():
-    input_csv = "extracted_study.csv"
+    input_csv = "goc_data_processed/extracted_study.csv"
     template_html = "sankey_study_template.html"
     output_html = "sankey_study.html"
 
     df = pd.read_csv(input_csv)
     # Always exclude totals
-    nodes, links = build_nodes_links(df, drop_totals=True)
+    nodes, links = build_echarts_data(df, drop_totals=True)
+    
+    # Create color schema for top-level nodes
+    color_schema = create_color_schema(df)
 
     # Load template and inject JSON
     with open(template_html, "r", encoding="utf-8") as f:
@@ -95,8 +157,11 @@ def main():
 
     nodes_json = json.dumps(nodes, ensure_ascii=False)
     links_json = json.dumps(links, ensure_ascii=False)
+    color_schema_json = json.dumps(color_schema, ensure_ascii=False)
 
-    html = tpl.replace("/*__NODES_JSON__*/ []", nodes_json).replace("/*__LINKS_JSON__*/ []", links_json)
+    html = (tpl.replace("/*__NODES_JSON__*/ []", nodes_json)
+                .replace("/*__LINKS_JSON__*/ []", links_json)
+                .replace("/*__COLOR_SCHEMA_JSON__*/ {}", color_schema_json))
 
     # Write out
     with open(output_html, "w", encoding="utf-8") as f:
@@ -104,9 +169,5 @@ def main():
 
     print(f"Wrote: {output_html}")
 
-
 if __name__ == "__main__":
     main()
-
-
-

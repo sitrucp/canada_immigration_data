@@ -77,22 +77,21 @@ All data is sourced via the Government of Canada's open data portal. The dataset
  - `extract_study.py` - Script to extract and process Study data
 
 ### Sankey Visualization Files
-- `d3-sankey.js` - D3.js Sankey plugin library (v0.12.3) for rendering flow diagrams
 - `sankey_imp_data.py` - Python script to generate IMP Sankey visualization from CSV data
 - `sankey_imp_template.html` - HTML template for IMP Sankey chart (dynamically populated with data)
-- `sankey_imp.html` - Generated IMP Sankey visualization (interactive D3.js chart)
+- `sankey_imp.html` - Generated IMP Sankey visualization (interactive ECharts.js chart)
 - `sankey_tfw_data.py` - Python script to generate TFW Sankey visualization from CSV data
 - `sankey_tfw_template.html` - HTML template for TFW Sankey chart (dynamically populated with data)
-- `sankey_tfw.html` - Generated TFW Sankey visualization (interactive D3.js chart)
+- `sankey_tfw.html` - Generated TFW Sankey visualization (interactive ECharts.js chart)
  - `sankey_pr_data.py` - Python script to generate PR Sankey visualization from CSV data
  - `sankey_pr_template.html` - HTML template for PR Sankey chart (dynamically populated with data)
- - `sankey_pr.html` - Generated PR Sankey visualization (interactive D3.js chart)
+ - `sankey_pr.html` - Generated PR Sankey visualization (interactive ECharts.js chart)
  - `sankey_asylum_data.py` - Python script to generate Asylum Sankey visualization from CSV data
  - `sankey_asylum_template.html` - HTML template for Asylum Sankey chart (dynamically populated with data)
- - `sankey_asylum.html` - Generated Asylum Sankey visualization (interactive D3.js chart)
+ - `sankey_asylum.html` - Generated Asylum Sankey visualization (interactive ECharts.js chart)
  - `sankey_study_data.py` - Python script to generate Study Sankey visualization from CSV data
  - `sankey_study_template.html` - HTML template for Study Sankey chart (dynamically populated with data)
- - `sankey_study.html` - Generated Study Sankey visualization (interactive D3.js chart)
+ - `sankey_study.html` - Generated Study Sankey visualization (interactive ECharts.js chart)
 
 **Sankey Chart Features:**
 - Interactive flow diagrams showing hierarchical data relationships
@@ -109,7 +108,7 @@ All data is sourced via the Government of Canada's open data portal. The dataset
 2. **Data Cleaning**: Remove privacy-protected values ("--") and handle rounding
 3. **Data Aggregation**: Combine data across programs and time periods
 4. **Output CSV files**: Write processed datasets to CSV files for downstream analysis
-5. **Sankey Chart Generation**: Python scripts read the processed CSV data, build node and link structures, validate data aggregates, and inject the data as JSON into HTML templates to create interactive D3.js Sankey visualizations
+5. **Sankey Chart Generation**: Python scripts read the processed CSV data, build node and link structures, validate data aggregates, and inject the data as JSON into HTML templates to create interactive ECharts.js Sankey visualizations
 
 ## Data Processing Notes
 
@@ -122,6 +121,10 @@ The extraction scripts normalize the Excel data sources into clean, analysis-rea
 - Unpivot month/year columns: convert wide year (or year-month) columns into long format with one observation per row.
 - Province "Not stated" alignment (IMP/TFW): when `province_territory` contains "Not stated", the primary category is normalized to `Not stated` for consistent grouping.
 - Trimming footers (IMP/TFW): by default, rows below the final exact `Total` row are removed to drop footnotes and notes. You can disable this with the `no-trim` flag.
+- Collision avoidance (PR/IMP): to prevent circular references in sankey visualizations, category values that appear in multiple hierarchy levels are automatically renamed with " (subcategory)" suffix:
+  - When `category_1` equals `category_2`, the `category_2` value gets " (subcategory)" suffix
+  - When `category_2` equals `category_3`, the `category_3` value gets " (subcategory)" suffix
+  - This ensures unique node names across all hierarchy levels in the sankey charts
 
 ## Output CSV Schemas
 
@@ -161,6 +164,9 @@ The output schema is consistent:
   - `year=2023`
   - `value=10`
 
+- Notes:
+  - Category collision avoidance (IMP only): values that appear in multiple hierarchy levels are automatically renamed with " (subcategory)" suffix to prevent circular references in sankey visualizations.
+
 
 ### PR output: `extracted_pr.csv`
 
@@ -175,6 +181,7 @@ The output schema is consistent:
 
 - Notes:
   - Province "Not stated" rows normalize `category_1` to `Not stated` for consistency in rollups.
+  - Category collision avoidance: values that appear in multiple hierarchy levels are automatically renamed with " (subcategory)" suffix to prevent circular references in sankey visualizations.
 
 ### Asylum output: `extracted_asylum.csv`
 
@@ -215,29 +222,29 @@ The `total_flag=False` should be set to avoid double counting of detail and tota
 
 ```bash
 # HC with explicit input/output (default sheet)
-python extract_hc.py "EN_ODP-TR-Work-HC_citizenship_sign.xlsx" "extracted_hc.csv"
+python extract_hc.py "goc_data_source/EN_ODP-TR-Work-HC_citizenship_sign.xlsx" "goc_data_processed/extracted_hc.csv"
 
 # HC with custom sheet name
-python extract_hc.py "EN_ODP-TR-Work-HC_citizenship_sign.xlsx" "extracted_hc.csv" --sheet "TR - HC CITZ"
+python extract_hc.py "goc_data_source/EN_ODP-TR-Work-HC_citizenship_sign.xlsx" "goc_data_processed/extracted_hc.csv" --sheet "TR - HC CITZ"
 
-# IMP/TFW: process both default files in the current folder
+# IMP/TFW: process both defaults from goc_data_source → goc_data_processed
 python extract_imp_tfw.py
 
 # IMP/TFW: process a specific file into a specific CSV
-python extract_imp_tfw.py "EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx" "extracted_imp.csv"
+python extract_imp_tfw.py "goc_data_source/EN_ODP_annual-TR-work-IMP_PT_program_year_end.xlsx" "goc_data_processed/extracted_imp.csv"
 
 # IMP/TFW: process a specific file and keep rows below the final Total row
-python extract_imp_tfw.py "EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx" "extracted_tfw.csv" no-trim
+python extract_imp_tfw.py "goc_data_source/EN_ODP_annual-TR-work-TFW_PT_program_year_end.xlsx" "goc_data_processed/extracted_tfw.csv" no-trim
 
 # PR: process Province/Immigration Category file into unpivoted CSV
-python extract_pr.py "EN_ODP-PR-ProvImmCat.xlsx" "extracted_pr.csv"
+python extract_pr.py "goc_data_source/EN_ODP-PR-ProvImmCat.xlsx" "goc_data_processed/extracted_pr.csv"
 
 # Asylum: process Claim Office Type/Province file into unpivoted CSV
-python extract_asylum.py "EN_ODP-Asylum-OfficeType_Prov.xlsx" "extracted_asylum.csv"
+python extract_asylum.py "goc_data_source/EN_ODP-Asylum-OfficeType_Prov.xlsx" "goc_data_processed/extracted_asylum.csv"
 
 # Study: process Study level by Province/Territory into unpivoted CSV (defaults shown)
 python extract_study.py
-python extract_study.py "EN_ODP-TR-Study-IS_PT_study_level_sign.xlsx" "extracted_study.csv"
+python extract_study.py "goc_data_source/EN_ODP-TR-Study-IS_PT_study_level_sign.xlsx" "goc_data_processed/extracted_study.csv"
 ```
 
 ### Generating Sankey Visualizations
@@ -246,27 +253,27 @@ After extracting data to CSV files, run the Sankey generation scripts to create 
 
 ```bash
 # Generate IMP Sankey chart
-# Reads: extracted_imp.csv and sankey_imp_template.html
+# Reads: goc_data_processed/extracted_imp.csv and sankey_imp_template.html
 # Writes: sankey_imp.html
 python sankey_imp_data.py
 
 # Generate TFW Sankey chart
-# Reads: extracted_tfw.csv and sankey_tfw_template.html
+# Reads: goc_data_processed/extracted_tfw.csv and sankey_tfw_template.html
 # Writes: sankey_tfw.html
 python sankey_tfw_data.py
 
 # Generate PR Sankey chart
-# Reads: extracted_pr.csv and sankey_pr_template.html
+# Reads: goc_data_processed/extracted_pr.csv and sankey_pr_template.html
 # Writes: sankey_pr.html
 python sankey_pr_data.py
 
 # Generate Asylum Sankey chart
-# Reads: extracted_asylum.csv and sankey_asylum_template.html
+# Reads: goc_data_processed/extracted_asylum.csv and sankey_asylum_template.html
 # Writes: sankey_asylum.html
 python sankey_asylum_data.py
 
 # Generate Study Sankey chart
-# Reads: extracted_study.csv and sankey_study_template.html
+# Reads: goc_data_processed/extracted_study.csv and sankey_study_template.html
 # Writes: sankey_study.html
 python sankey_study_data.py
 ```
@@ -276,7 +283,7 @@ python sankey_study_data.py
 2. IMP has 3 category levels (category_1 → category_2 → category_3), TFW has 2 (category_1 → category_2)
 3. The script validates data aggregates to ensure consistency across hierarchy levels
 4. Node and link data is serialized to JSON and injected into the HTML template
-5. The generated HTML file contains the complete interactive D3.js Sankey visualization
+5. The generated HTML file contains the complete interactive ECharts.js Sankey visualization
 6. Open the generated `.html` file in a web browser to view and interact with the chart
 
 **Note:** The `.html` files are generated artifacts. If you update the CSV data or modify the template, re-run the appropriate Python script to regenerate the visualization.
@@ -302,7 +309,7 @@ The PDF file `power_bi_report.pdf` contains tables and charts created using this
 
 - Python 3.x
 - pandas
-- d3-sankey.js v0.12.3
+- ECharts.js (loaded via CDN in HTML templates)
 
 ## Data Privacy
 

@@ -200,12 +200,15 @@ def transform_hierarchical(df: pd.DataFrame, hierarchy_cols: List[str]) -> pd.Da
         last_total_idx = total_rows[total_rows].index.max()
         df.loc[last_total_idx, "total_flag"] = True
 
-    # Special-case anomaly: keep it, and ensure total_flag is False
+    # Special-case anomaly: keep it, ensure total_flag is False,
+    # and set study_level to a normalized label
     mask_anomaly = df["province_territory"].astype(str).str.strip().str.lower().eq(
         "province/territory not stated total"
     )
     if mask_anomaly.any():
         df.loc[mask_anomaly, "total_flag"] = False
+        if "study_level" in df.columns:
+            df.loc[mask_anomaly, "study_level"] = "Education level not stated"
 
     return df
 
@@ -329,6 +332,10 @@ def process_excel(input_path: str, output_path: str) -> None:
     csv_output_path = output_path.replace('.xlsx', '.csv').replace('.xlsm', '.csv')
     if not csv_output_path.endswith('.csv'):
         csv_output_path += '.csv'
+    # Ensure output directory exists
+    import os
+    out_dir = os.path.dirname(csv_output_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
     unp.to_csv(csv_output_path, index=False)
     print(f"Saved CSV: {csv_output_path}")
 
@@ -338,8 +345,8 @@ def process_excel(input_path: str, output_path: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Clean Study level Excel into unpivoted CSV format.")
-    parser.add_argument("input_path", nargs="?", default="EN_ODP-TR-Study-IS_PT_study_level_sign.xlsx", help="Path to the input .xlsx file")
-    parser.add_argument("output_path", nargs="?", default="extracted_study.csv", help="Output CSV path")
+    parser.add_argument("input_path", nargs="?", default="goc_data_source/EN_ODP-TR-Study-IS_PT_study_level_sign.xlsx", help="Path to the input .xlsx file")
+    parser.add_argument("output_path", nargs="?", default="goc_data_processed/extracted_study.csv", help="Output CSV path")
     args = parser.parse_args()
 
     process_excel(args.input_path, args.output_path)

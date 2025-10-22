@@ -36,7 +36,7 @@ def _validate_aggregates(long_df: pd.DataFrame, l01: pd.DataFrame, l12: pd.DataF
         raise AssertionError(f"Overall total mismatch: csv={total_csv} vs links_l1_sum={total_links_l1}")
 
 
-def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
+def build_echarts_data(df: pd.DataFrame, drop_totals: bool = True):
     # Normalize text columns
     for c in ["province_territory","category_1","category_2"]:
         if c in df.columns:
@@ -87,7 +87,8 @@ def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
     levels = ([0]*len(level0)) + ([1]*len(level1)) + ([2]*len(level2))
     node_id_map = {label: idx for idx, label in enumerate(labels)}
 
-    nodes = [{"id": i, "label": lab, "level": lvl} for i, (lab, lvl) in enumerate(zip(labels, levels))]
+    # ECharts nodes format: list of node names
+    nodes = labels
 
     # Links
     # Level 0 to Level 1: TFW to all category_1 nodes (including "not stated" province)
@@ -110,16 +111,64 @@ def build_nodes_links(df: pd.DataFrame, drop_totals: bool = True):
     # Validate aggregates over all years and provinces for each level
     _validate_aggregates(long_df, l01.assign(category_1=l01["category_1"]), l12.assign(category_2=l12["category_2"]))
 
-    return nodes, links.to_dict(orient="records")
+    # ECharts links format: list of {source: node_name, target: node_name, value: number}
+    echarts_links = []
+    for _, row in links.iterrows():
+        echarts_links.append({
+            "source": labels[row["source"]],
+            "target": labels[row["target"]],
+            "value": int(row["value"]),
+            "province_territory": row["province_territory"],
+            "year": row["year"]
+        })
+
+    return nodes, echarts_links
+
+def create_color_schema(df: pd.DataFrame) -> dict:
+    """Create a color schema mapping for top-level nodes (direct children of TFW).
+    
+    Colors are assigned based on the total value of each category, ensuring
+    consistent visual hierarchy across different datasets.
+    """
+    # Define the color palette (same as in HTML)
+    color_palette = [
+        '#e74c3c',  # Red
+        '#3498db',  # Blue
+        '#2ecc71',  # Green
+        '#f39c12',  # Orange
+        '#9b59b6',  # Purple
+        '#1abc9c',  # Turquoise
+        '#e67e22',  # Dark Orange
+        '#34495e',  # Dark Blue
+        '#e91e63',  # Pink
+        '#00bcd4'   # Cyan
+    ]
+    
+    # Filter out totals before calculating color schema
+    if 'total_flag' in df.columns:
+        df = df.loc[~df['total_flag'].astype(bool)]
+    
+    # Calculate total values for each top-level category
+    category_values = df.groupby('category_1')['value'].sum().sort_values(ascending=False)
+    
+    # Create color mapping based on value ranking (largest gets first color)
+    color_schema = {}
+    for i, (category, value) in enumerate(category_values.items()):
+        color_schema[category] = color_palette[i % len(color_palette)]
+    
+    return color_schema
 
 def main():
-    input_csv = "extracted_tfw.csv"
+    input_csv = "goc_data_processed/extracted_tfw.csv"
     template_html = "sankey_tfw_template.html"
     output_html = "sankey_tfw.html"
 
     df = pd.read_csv(input_csv)
     # Always exclude totals
-    nodes, links = build_nodes_links(df, drop_totals=True)
+    nodes, links = build_echarts_data(df, drop_totals=True)
+    
+    # Create color schema for top-level nodes
+    color_schema = create_color_schema(df)
 
     # Load template and inject JSON
     with open(template_html, "r", encoding="utf-8") as f:
@@ -127,8 +176,11 @@ def main():
 
     nodes_json = json.dumps(nodes, ensure_ascii=False)
     links_json = json.dumps(links, ensure_ascii=False)
+    color_schema_json = json.dumps(color_schema, ensure_ascii=False)
 
-    html = tpl.replace("/*__NODES_JSON__*/ []", nodes_json).replace("/*__LINKS_JSON__*/ []", links_json)
+    html = (tpl.replace("/*__NODES_JSON__*/ []", nodes_json)
+                .replace("/*__LINKS_JSON__*/ []", links_json)
+                .replace("/*__COLOR_SCHEMA_JSON__*/ {}", color_schema_json))
 
     # Write out
     with open(output_html, "w", encoding="utf-8") as f:
@@ -138,4 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
