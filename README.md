@@ -5,6 +5,9 @@ This repository contains python code to extract analysis ready data from the Can
 1) Temporary Foreign Worker Program (TFWP)
 2) International Mobility Program (IMP)
 3) Humanitarian & Compassionate (H&C) work permit data
+4) Permanent Residents (PR) by immigration category
+5) Asylum claimants by office type and province
+6) Study permit holders by study level and province
 
 The current scope here focuses on extraction and processing only. 
 
