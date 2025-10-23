@@ -9,9 +9,16 @@ This repository contains python code to extract analysis ready data from the Can
 5) Asylum claimants by office type and province
 6) Study permit holders by study level and province
 
-The current scope here focuses on extraction and processing only. 
+The `goc_data_processed` folder contains the processed analysis ready data. This data was used to create some analysis that is available in this repo:
 
-The PDF file `power_bi_report.pdf` contains tables and charts created using this data.
+1) A Power BI report, not shared, but all pages exported here as a PDF file `power_bi_report.pdf` that presents some of the data here.
+
+2) ECharts sankey charts for each immigration stream available to view:
+   - [PR Sankey](https://sitrucp.github.io/canada_immigration_data/sankey_pr.html)
+   - [IMP Sankey](https://sitrucp.github.io/canada_immigration_data/sankey_imp.html)
+   - [TFW Sankey](https://sitrucp.github.io/canada_immigration_data/sankey_tfw.html)
+   - [Asylum Sankey](https://sitrucp.github.io/canada_immigration_data/sankey_asylum.html)
+   - [Study Sankey](https://sitrucp.github.io/canada_immigration_data/sankey_study.html) 
 
 ## Data Sources
 
@@ -89,19 +96,19 @@ The repository is organized into two main data folders:
 ### Sankey Visualization Files
 - `sankey_imp_data.py` - Python script to generate IMP Sankey visualization from CSV data
 - `sankey_imp_template.html` - HTML template for IMP Sankey chart (dynamically populated with data)
-- `sankey_imp.html` - Generated IMP Sankey visualization (interactive ECharts.js chart)
+- `sankey_imp.html` - Generated IMP Sankey visualization (interactive ECharts.js chart) - [View Online](https://sitrucp.github.io/canada_immigration_data/sankey_imp.html)
 - `sankey_tfw_data.py` - Python script to generate TFW Sankey visualization from CSV data
 - `sankey_tfw_template.html` - HTML template for TFW Sankey chart (dynamically populated with data)
-- `sankey_tfw.html` - Generated TFW Sankey visualization (interactive ECharts.js chart)
+- `sankey_tfw.html` - Generated TFW Sankey visualization (interactive ECharts.js chart) - [View Online](https://sitrucp.github.io/canada_immigration_data/sankey_tfw.html)
  - `sankey_pr_data.py` - Python script to generate PR Sankey visualization from CSV data
  - `sankey_pr_template.html` - HTML template for PR Sankey chart (dynamically populated with data)
- - `sankey_pr.html` - Generated PR Sankey visualization (interactive ECharts.js chart)
+ - `sankey_pr.html` - Generated PR Sankey visualization (interactive ECharts.js chart) - [View Online](https://sitrucp.github.io/canada_immigration_data/sankey_pr.html)
  - `sankey_asylum_data.py` - Python script to generate Asylum Sankey visualization from CSV data
  - `sankey_asylum_template.html` - HTML template for Asylum Sankey chart (dynamically populated with data)
- - `sankey_asylum.html` - Generated Asylum Sankey visualization (interactive ECharts.js chart)
+ - `sankey_asylum.html` - Generated Asylum Sankey visualization (interactive ECharts.js chart) - [View Online](https://sitrucp.github.io/canada_immigration_data/sankey_asylum.html)
  - `sankey_study_data.py` - Python script to generate Study Sankey visualization from CSV data
  - `sankey_study_template.html` - HTML template for Study Sankey chart (dynamically populated with data)
- - `sankey_study.html` - Generated Study Sankey visualization (interactive ECharts.js chart)
+ - `sankey_study.html` - Generated Study Sankey visualization (interactive ECharts.js chart) - [View Online](https://sitrucp.github.io/canada_immigration_data/sankey_study.html)
 
 **Sankey Chart Features:**
 - Interactive flow diagrams showing hierarchical data relationships
@@ -160,7 +167,7 @@ The output schema is consistent:
 
 - Columns:
   - `province_territory` (always present)
-  - `categories` => IMP source data has 3 hierarcy columns: `category_1`, `category_2`, `category_3`. TFW has only 2 hierarcy columns: `category_1`, `category_2`. 
+  - `categories` => IMP source data has 3 hierarchy columns: `category_1`, `category_2`, `category_3`. TFW has only 2 hierarchy columns: `category_1`, `category_2`. 
   - `total_flag`: boolean; TRUE for structural subtotal rows, FALSE for detail/leaf rows
   - `year`: integer year (e.g., 2018)
   - `value`: integer count; "--" from source becomes 2; blanks become 0
